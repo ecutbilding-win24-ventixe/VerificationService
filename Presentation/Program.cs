@@ -12,9 +12,10 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton(x => new EmailClient(builder.Configuration["AzureCommunicationService:ConnectionString"]));
 builder.Services.AddDbContext<DataContext>(x => x.UseSqlServer(builder.Configuration["SqlDatabase:SqlConnectionString"]));
 builder.Services.AddTransient<IVerificationService, VerificationService>();
-
+builder.Services.AddGrpc();
 
 var app = builder.Build();
+app.MapGrpcService<VerificationServiceImplemation>();
 app.MapOpenApi();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
