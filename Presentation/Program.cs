@@ -9,7 +9,6 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddMemoryCache(); 
 builder.Services.AddSingleton(x => new EmailClient(builder.Configuration["AzureCommunicationService:ConnectionString"]));
 builder.Services.AddDbContext<DataContext>(x => x.UseSqlServer(builder.Configuration["SqlDatabase:SqlConnectionString"]));
 builder.Services.AddTransient<IVerificationService, VerificationService>();
