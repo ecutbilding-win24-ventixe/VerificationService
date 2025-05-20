@@ -11,11 +11,11 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton(x => new EmailClient(builder.Configuration["AzureCommunicationService:ConnectionString"]));
 builder.Services.AddDbContext<DataContext>(x => x.UseSqlServer(builder.Configuration["SqlDatabase:SqlConnectionString"]));
-builder.Services.AddTransient<IVerificationService, VerificationService>();
-builder.Services.AddGrpc();
+
+builder.Services.AddHttpClient<VerificationService>();
+builder.Services.AddScoped<IVerificationService, VerificationService>();
 
 var app = builder.Build();
-app.MapGrpcService<VerificationServiceImplemation>();
 app.MapOpenApi();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -30,9 +30,5 @@ app.UseCors(x => x
     .AllowAnyMethod()
     .AllowAnyHeader());
 
-app.UseAuthentication();
-app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

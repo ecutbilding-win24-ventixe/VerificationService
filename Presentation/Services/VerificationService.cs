@@ -9,12 +9,29 @@ using Presentation.Data.Entities;
 namespace Presentation.Services;
 
 //ChatGPT hjälpte mig att förbättra och skriva koden.
-public class VerificationService(IConfiguration configuration, EmailClient emailClient, DataContext context) : IVerificationService
+public class VerificationService : IVerificationService
 {
-    private readonly IConfiguration _configuration = configuration;
-    private readonly EmailClient _emailClient = emailClient;
-    private readonly DataContext _context = context;
+    private readonly IConfiguration _configuration;
+    private readonly EmailClient _emailClient;
+    private readonly DataContext _context;
     private static readonly Random _random = new();
+    private readonly HttpClient _httpClient;
+
+    public VerificationService(IConfiguration configuration, EmailClient emailClient, DataContext context, HttpClient httpClient)
+    {
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _emailClient = emailClient ?? throw new ArgumentNullException(nameof(emailClient));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+
+        var accountServiceUrl = configuration["AccountService:Url"];
+        if (string.IsNullOrEmpty(accountServiceUrl))
+        {
+            throw new InvalidOperationException("AccountService:Url is not configured.");
+        }
+
+        _httpClient.BaseAddress = new Uri(accountServiceUrl);
+    }
 
     public async Task<VerificationServiceResult> SendVerificationCodeAsync(SendVerificationCodeRequest request)
     {
@@ -24,6 +41,18 @@ public class VerificationService(IConfiguration configuration, EmailClient email
                 return new VerificationServiceResult { Succeeded = false, Error = "Invalid request." };
 
             var email = request.Email.ToLowerInvariant();
+
+            var response = await _httpClient.GetAsync($"/api/accounts/check-email?email={email}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return new VerificationServiceResult { Succeeded = false, Error = errorContent };
+            }
+
+            var emailCheckResult = await response.Content.ReadFromJsonAsync<CheckEmailExistsResponse>();
+            if (emailCheckResult == null || emailCheckResult.Exists)
+                return new VerificationServiceResult { Succeeded = false, Error = emailCheckResult?.Message ?? "Email already exists." };
+
             var verificationCode = _random.Next(100000, 999999).ToString();
             var expirationTime = DateTime.UtcNow.AddMinutes(5);
 

@@ -30,7 +30,7 @@ public class VerificationController(IVerificationService verificationService) : 
             return BadRequest(new { Error = "Invalid or expired verification code!" });
         var result = _verificationService.VerifyVerificationCode(request);
         return result.Succeeded
-            ? Ok(result)
-            : StatusCode(500, result);
+            ? Ok(new { success = true, message = result.Message })
+            : StatusCode(500, new { success = false, message = result.Error });
     }
 }
